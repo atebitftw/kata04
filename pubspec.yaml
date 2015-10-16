@@ -1,14 +1,16 @@
-name: chemaxon_app
+name: kata
 version: 0.0.1
-description: A sample command-line application.
-#author: Your Name <email@example.com>
-#homepage: https://www.example.com
+description: App for Kata04 Exercise
+author: John Evans <prujohn@gmail.com
 
 environment:
   sdk: '>=1.0.0 <2.0.0'
 
-#dependencies:
-#  foo_bar: '>=1.0.0 <2.0.0'
+dependencies:
+  kata_util:
+      path: ../chemaxon_util
+  args: "^0.13.2"
+  logging: "^0.11.2"
 
 dev_dependencies:
   test: '>=0.12.0 <0.13.0'

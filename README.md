@@ -1,3 +1,3 @@
-# chemaxon_app
+# Kata04 App
 
-A sample command-line application.
+Application for the Kata04 exercise.
