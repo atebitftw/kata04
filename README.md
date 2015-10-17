@@ -24,9 +24,11 @@ That you have dart installed.  www.dartlang.org
 
 ## Running A Query
 For the weather.dat file:
+    
     dart kata.dart --ignorelast --query=smallest_spread --url=http://codekata.com/data/04/weather.dat --cols=MnT,MxT --disp=Dy --coerce
 
 For the football.dat file:
+    
     dart kata.dart --query=smallest_spread --url=http://codekata.com/data/04/football.dat --cols=F,A --disp=Team --coerce
 
 ## Compliance
