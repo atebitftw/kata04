@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/prujohn/kata04.svg?branch=master)](https://travis-ci.org/prujohn/kata04)
+
 # Kata04 App
 
 Application for the Kata04 exercise.
