@@ -1,80 +1,139 @@
 // Copyright (c) 2015, John Evans (prujohn@gmail.com). All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 
-import 'package:kata_util/kata_util.dart' as _;
+import 'package:kata_util/kata_util.dart' as kata;
 import 'dart:io';
 import 'package:args/args.dart';
 import 'package:logging/logging.dart';
 
-final Logger _l = new Logger("kata");
-final Level _logLevel = Level.WARNING;
+final Logger _l = new Logger("kata.app");
+Level _logLevel = Level.SEVERE;
 
-const String weather = 'http://codekata.com/data/04/weather.dat';
-const String football = 'http://codekata.com/data/04/football.dat';
+// http://codekata.com/data/04/weather.dat
+// http://codekata.com/data/04/football.dat
 
 main(List<String> arguments) async {
 
   _initLogging();
-  final parser = _initParser();
+  final parser = _initArgParser();
   final results = parser.parse(arguments);
 
-  if (results.rest.isEmpty)
-  {
-    var ec = _error("\nSomething is wrong with your"
-    " supplied arguments.  Need to supply a url along with options for generating a report. ");
-    _showUsage(parser);
-    exit(ec);
+  if (results['warnings']){
+    Logger.root.level = Level.WARNING;
   }
 
-  final rawData = await _.getFileFromUri(results.rest[0]);
+  if (results.wasParsed('help')){
+    print(parser.usage);
+    exit(0);
+    return;
+  }
+
+  if (!results.wasParsed('url')){
+    print(parser.usage);
+    exit(1);
+    return;
+  }
+
+  final rawData = await kata.getFileFromUri(results['url']);
 
   if (rawData == null){
-    _l.warning("Unable to open file ${results.rest[0]}");
-    exit(_error("Unable to open file at: ${results.rest[0]}"));
+    _l.severe("Unable to open ${results['url']}");
+    exit(1);
+    return;
   }
 
-  if (results.arguments.length == 1) {
-    print(rawData);
-    exit(0);
+  if (results['coerce'] && results['strict']){
+    print("Data cannot be coerced with --coerce flag when --strict flag is used.");
+    exit(1);
     return;
   }
 
   if (results['analyze']){
-    _l.info('runnig analysis report');
-    print('\nAnalysis report for: ${results.rest[0]}');
-    _.prints(_.analyze(rawData, ignoreLast: results['ignorelast']));
+    print('\nAnalysis report for: ${results["url"]}');
+    print(kata.analyze(rawData, ignoreLast: results['ignorelast']));
+  }
+
+  if (results.wasParsed('query')){
+    if (!results.wasParsed('cols')){
+      _l.severe("No columns specified for query.  Use --cols=col1,col2,...");
+      exit(1);
+      return;
+    }
+
+    final cols = (results['cols'] as String).split(',');
+    _l.fine("cols given: ${cols}");
+
+    var disp = [];
+
+    if (results.wasParsed('disp')){
+      disp = (results['disp'] as String).split(',');
+    }
+
+    _l.fine("display columns given: ${disp}");
+
+    final queryResult = kata.query(
+          rawData,
+          results['query'],
+          cols,
+          disp,
+          coerce: results['coerce'],
+          ignoreLast: results['ignorelast'],
+          strict: results['strict']
+      );
+
+    if (queryResult.containsKey('error')){
+      _l.warning(queryResult['error']);
+      print(queryResult);
+      exit(1);
+      return;
+    }
+
+    print(queryResult);
+
     exit(0);
     return;
   }
+
+  //only url supplied so just dump it out.
+  print(rawData);
+  exit(0);
 }
 
-void _showUsage(ArgParser p){
-  print("\nUsage:\ndart kata.dart [url to data]    Prints the raw data to the console.");
-  print("dart kata.dart [url to data] {options}    See below for various options and flags.\n");
-  print(p.usage);
-}
-
-ArgParser _initParser()
+ArgParser _initArgParser()
 {
   final parser = new ArgParser();
 
-  parser.addFlag('ignorelast', abbr: 'i', help: "Ignores the last row of the data set.  "
-  "Useful for throwing away, summary rows.");
+  parser.addFlag('help', defaultsTo: false, help: "Displays Usage");
 
-  parser.addFlag('analyze', help: "Outputs an analysis of the data and it's structure.");
+  parser.addFlag('analyze', defaultsTo: false, help: "Outputs an analysis of the data and it's structure.");
+
+  parser.addFlag('ignorelast', defaultsTo: false, help: "Ignores the last row of the data set.  "
+  "Useful for throwing away, summary row.");
+
+  parser.addFlag('strict', defaultsTo: false, help: "Forces query to fail if there any problems with the data.");
+
+  parser.addFlag('coerce', defaultsTo: false, help:
+    "Instructs the query command to attempt to coerce data elements into the correct type.");
+
+  parser.addOption('url', help: "Url to the data. (ex. --url=http://codekata.com/data/04/weather.dat)");
+
+  parser.addOption('query', help: 'The query name to run against the data. (ex. --query=smallest_spread)');
+
+  parser.addOption('cols', help: 'Comma delimited list of columns for the query to use.'
+    '  Can use column header name or column position 0-n.');
+
+  parser.addOption('disp', help: 'Comma delimited list of columns to disply on query output.'
+    ' Leave blank to see default query result.');
+
+  parser.addFlag("warnings", defaultsTo: false, help: "Show warnings. Might help discover data integrity issues.");
 
   return parser;
-}
-
-int _error(String message){
-  _.prints(message);
-  return 1;
 }
 
 void _initLogging(){
   Logger.root.level = _logLevel;
 
   Logger.root.onRecord.listen((LogRecord lr){
-    _.prints('${lr.level.name}: ${lr.message}');
+    print('${lr.level.name}(${lr.loggerName}): ${lr.message}');
   });
 }

@@ -8,7 +8,8 @@ environment:
 
 dependencies:
   kata_util:
-      path: ../chemaxon_util
+#      path: ../chemaxon_util
+      git: git://github.com/prujohn/kata04-util.git
   args: "^0.13.2"
   logging: "^0.11.2"
 
